@@ -1,99 +1,44 @@
 ---
-# Create a service account for the kube registry
-# Limit it to the kube-system namespace
+# Create a service account for the kube registry limited to the kube-system namespace
+# pod security policies can be bound to this service account if necessary
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kube-registry
   namespace: kube-system
 ---
-# Create a pod security policy  (psp) for the service account
-# that is as minimal as possible.
-# TODO: This almost definitely isn't minimal
-apiVersion: extensions/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: kube-registry.psp
-  # TODO: can the psp be limited to the namespace?
-spec:
-  fsGroup:
-    rule: RunAsAny
-  privileged: false
-  runAsUser:
-    rule: RunAsAny
-  seLinux:
-    rule: RunAsAny
-  supplementalGroups:
-    rule: RunAsAny
-  volumes:
-  - flexVolume
-  - secret
-  allowedFlexVolumes:
-  - driver: "ceph.rook.io/rook"
-  - driver: "ceph.rook.io/rook-ceph"
-  hostPID: false
-  hostIPC: false
-  hostNetwork: false
----
-# Create a role for the kube-registry that can use
-# the security policy
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  name: kube-registry:psp
-  namespace: kube-system
-rules:
-- apiGroups:
-  - extensions
-  resources:
-  - podsecuritypolicies
-  resourceNames:
-  - kube-registry.psp
-  verbs:
-  - use
----
-# Bind the role to the service account so that all pods
-# created by controllers in in the service account can
-# create the resources allowed by the psp
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
-metadata:
-  name: kube-registry:psp
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kube-registry:psp
-subjects:
-- kind: ServiceAccount
-  name: kube-registry
-  namespace: kube-system
----
 # Create the HA registry
-apiVersion: v1
-kind: ReplicationController
+apiVersion: extensions/v1beta1
+kind: Deployment
 metadata:
-  name: kube-registry-v0
+  name: kube-registry-v1
   namespace: kube-system
   labels:
     k8s-app: kube-registry
-    version: v0
+    version: v1
     kubernetes.io/cluster-service: "true"
 spec:
   replicas: 2
   selector:
-    k8s-app: kube-registry
-    version: v0
+    matchLabels:
+      k8s-app: kube-registry
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
         k8s-app: kube-registry
-        version: v0
+        version: v1
         kubernetes.io/cluster-service: "true"
     spec:
-      # Use the registry's service account so that we can use flexVolumes
+      # Use the registry's service account, which may or may not have pod security configs
       serviceAccount: kube-registry
       serviceAccountName: kube-registry
+      restartPolicy: Always
       containers:
       - name: registry
         image: registry:2
