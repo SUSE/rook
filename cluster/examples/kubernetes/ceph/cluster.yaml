@@ -259,8 +259,8 @@ spec:
 #    osd:
   storage: # cluster level storage configuration and selection
     useAllNodes: true
-    useAllDevices: false
-    deviceFilter: vd[b-z]
+    useAllDevices: true
+    deviceFilter:
     location:
     config:
       # The default and recommended storeType is dynamically set to bluestore for devices and filestore for directories.
