@@ -404,7 +404,7 @@ spec:
       serviceAccountName: rook-ceph-system
       containers:
       - name: rook-ceph-operator
-        image: rook/ceph:master
+        image: registry.opensuse.org/home/jfajerski/images/containers/images/ses/rook:latest
         args: ["ceph", "operator"]
         volumeMounts:
         - mountPath: /var/lib/rook
