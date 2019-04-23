@@ -1,0 +1,124 @@
+---
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: rook-privileged
+spec:
+  # TODO: can fsGroup be trimmed down?
+  fsGroup:
+    rule: RunAsAny
+  privileged: true
+  # TODO: can runAsUser be trimmed down?
+  runAsUser:
+    rule: RunAsAny
+  # TODO: can seLinux be trimmed down?
+  seLinux:
+    rule: RunAsAny
+  # TODO: can supplementalGroups be trimmed down?
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    # - 'persistentVolumeClaim'
+    - 'hostPath'
+    - 'flexVolume'
+    # allowedHostPaths:
+    #   - /var/lib/rook
+    #   - /dev
+    #   - ???others???
+  # allowedCapabilities:
+  #   - '*'
+  hostPID: true
+  # hostIPC: true
+  hostNetwork: true
+  hostPorts:
+    - min: 1
+      max: 65535
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: 'psp:rook'
+rules:
+  - apiGroups:
+      - policy
+    resources:
+      - podsecuritypolicies
+    resourceNames:
+      - rook-privileged
+    verbs:
+      - use
+
+---
+
+# Allow the rook-ceph-system serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rook-ceph-system-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'psp:rook'
+subjects:
+  - kind: ServiceAccount
+    name: rook-ceph-system
+    namespace: rook-ceph
+
+---
+
+# Allow the default serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rook-ceph-default-psp
+  namespace: rook-ceph
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: rook-ceph
+
+---
+
+# Allow the rook-ceph-osd serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rook-ceph-osd-psp
+  namespace: rook-ceph
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-ceph-osd
+  namespace: rook-ceph
+
+---
+
+# Allow the rook-ceph-mgr serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rook-ceph-mgr-psp
+  namespace: rook-ceph
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-ceph-mgr
+  namespace: rook-ceph
