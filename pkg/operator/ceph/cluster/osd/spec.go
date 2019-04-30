@@ -74,6 +74,7 @@ func (c *Cluster) makeJob(nodeName string, devices []rookalpha.Device,
 		},
 	}
 	k8sutil.AddRookVersionLabelToJob(job)
+	opspec.AddCephVersionLabelToJob(c.clusterInfo.CephVersion, job)
 	k8sutil.SetOwnerRef(c.context.Clientset, c.Namespace, &job.ObjectMeta, &c.ownerRef)
 	return job, nil
 }
@@ -259,7 +260,7 @@ func (c *Cluster) makeDeployment(nodeName string, selection rookalpha.Selection,
 			Name:      fmt.Sprintf(osdAppNameFmt, osd.ID),
 			Namespace: c.Namespace,
 			Labels: map[string]string{
-				k8sutil.AppAttr:     AppName,
+				k8sutil.AppAttr:     appName,
 				k8sutil.ClusterAttr: c.Namespace,
 				osdLabelKey:         fmt.Sprintf("%d", osd.ID),
 			},
@@ -267,7 +268,7 @@ func (c *Cluster) makeDeployment(nodeName string, selection rookalpha.Selection,
 		Spec: apps.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					k8sutil.AppAttr:     AppName,
+					k8sutil.AppAttr:     appName,
 					k8sutil.ClusterAttr: c.Namespace,
 					osdLabelKey:         fmt.Sprintf("%d", osd.ID),
 				},
@@ -277,9 +278,9 @@ func (c *Cluster) makeDeployment(nodeName string, selection rookalpha.Selection,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: AppName,
+					Name: appName,
 					Labels: map[string]string{
-						k8sutil.AppAttr:     AppName,
+						k8sutil.AppAttr:     appName,
 						k8sutil.ClusterAttr: c.Namespace,
 						osdLabelKey:         fmt.Sprintf("%d", osd.ID),
 					},
@@ -324,6 +325,8 @@ func (c *Cluster) makeDeployment(nodeName string, selection rookalpha.Selection,
 	k8sutil.AddRookVersionLabelToDeployment(deployment)
 	c.annotations.ApplyToObjectMeta(&deployment.ObjectMeta)
 	c.annotations.ApplyToObjectMeta(&deployment.Spec.Template.ObjectMeta)
+	opspec.AddCephVersionLabelToDeployment(c.clusterInfo.CephVersion, deployment)
+	opspec.AddCephVersionLabelToDeployment(c.clusterInfo.CephVersion, deployment)
 	k8sutil.SetOwnerRef(c.context.Clientset, c.Namespace, &deployment.ObjectMeta, &c.ownerRef)
 	c.placement.ApplyToPodSpec(&deployment.Spec.Template.Spec)
 	return deployment, nil
@@ -394,7 +397,7 @@ func (c *Cluster) provisionPodTemplateSpec(devices []rookalpha.Device, selection
 	c.placement.ApplyToPodSpec(&podSpec)
 
 	podMeta := metav1.ObjectMeta{
-		Name: AppName,
+		Name: appName,
 		Labels: map[string]string{
 			k8sutil.AppAttr:     prepareAppName,
 			k8sutil.ClusterAttr: c.Namespace,

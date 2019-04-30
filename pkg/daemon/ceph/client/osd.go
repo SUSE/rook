@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/rook/rook/pkg/clusterd"
 )
@@ -64,18 +63,6 @@ type OSDDump struct {
 		Up  json.Number `json:"up"`
 		In  json.Number `json:"in"`
 	} `json:"osds"`
-	Flags string `json:"flags"`
-}
-
-// IsFlagSet checks if an OSD flag is set
-func (dump *OSDDump) IsFlagSet(checkFlag string) bool {
-	flags := strings.Split(dump.Flags, ",")
-	for _, flag := range flags {
-		if flag == checkFlag {
-			return true
-		}
-	}
-	return false
 }
 
 // StatusByID returns status and inCluster states for given OSD id
@@ -159,58 +146,6 @@ func OSDRemove(context *clusterd.Context, clusterName string, osdID int) (string
 	args := []string{"osd", "rm", strconv.Itoa(osdID)}
 	buf, err := ExecuteCephCommand(context, clusterName, args)
 	return string(buf), err
-}
-
-func DisableScrubbing(context *clusterd.Context, clusterName string) (string, error) {
-	args := []string{"osd", "set", "noscrub"}
-	buf, err := ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return string(buf), fmt.Errorf("failed to set noscrub: %+v", err)
-	}
-
-	args = []string{"osd", "set", "nodeep-scrub"}
-	buf, err = ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return string(buf), fmt.Errorf("failed to set nodeep-scrub: %+v", err)
-	}
-
-	return string(buf), nil
-}
-
-func EnableScrubbing(context *clusterd.Context, clusterName string) (string, error) {
-	args := []string{"osd", "unset", "noscrub"}
-	buf, err := ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return string(buf), fmt.Errorf("failed to unset noscrub: %+v", err)
-	}
-
-	args = []string{"osd", "unset", "nodeep-scrub"}
-	buf, err = ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return string(buf), fmt.Errorf("failed to unset nodeep-scrub: %+v", err)
-	}
-
-	return string(buf), nil
-}
-
-// SetNoOut sets the osd flag `noout`
-func SetNoOut(context *clusterd.Context, clusterName string) error {
-	args := []string{"osd", "set", "noout"}
-	_, err := ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return fmt.Errorf("failed to set noout: %+v", err)
-	}
-	return nil
-}
-
-// UnsetNoOut unsets the osd flag `noout`
-func UnsetNoOut(context *clusterd.Context, clusterName string) error {
-	args := []string{"osd", "unset", "noout"}
-	_, err := ExecuteCephCommand(context, clusterName, args)
-	if err != nil {
-		return fmt.Errorf("failed to unset noout: %+v", err)
-	}
-	return nil
 }
 
 func (usage *OSDUsage) ByID(osdID int) *OSDNodeUsage {

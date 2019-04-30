@@ -29,7 +29,6 @@ import (
 	cephbeta "github.com/rook/rook/pkg/apis/ceph.rook.io/v1beta1"
 	"github.com/rook/rook/pkg/clusterd"
 	"github.com/rook/rook/pkg/daemon/ceph/agent/flexvolume/attachment"
-	"github.com/rook/rook/pkg/daemon/ceph/client"
 	discoverDaemon "github.com/rook/rook/pkg/daemon/discover"
 	"github.com/rook/rook/pkg/operator/ceph/cluster/mon"
 	"github.com/rook/rook/pkg/operator/ceph/cluster/osd"
@@ -63,6 +62,7 @@ const (
 	DefaultClusterName         = "rook-ceph"
 	clusterDeleteRetryInterval = 2 //seconds
 	clusterDeleteMaxRetries    = 15
+	disableHotplugEnv          = "ROOK_DISABLE_DEVICE_HOTPLUG"
 )
 
 var (
@@ -143,24 +143,29 @@ func (c *ClusterController) StartWatch(namespace string, stopCh chan struct{}) e
 	)
 	go nodeController.Run(stopCh)
 
-	// watch for updates to the device discovery configmap
-	operatorNamespace := os.Getenv(k8sutil.PodNamespaceEnvVar)
-	_, deviceCMController := cache.NewInformer(
-		cache.NewFilteredListWatchFromClient(c.context.Clientset.CoreV1().RESTClient(),
-			"configmaps", operatorNamespace, func(options *metav1.ListOptions) {
-				options.LabelSelector = fmt.Sprintf("%s=%s", k8sutil.AppAttr, discoverDaemon.AppName)
+	if disableVal := os.Getenv(disableHotplugEnv); disableVal != "true" {
+		// watch for updates to the device discovery configmap
+		logger.Infof("Enabling hotplug orchestration: %s=%s", disableHotplugEnv, disableVal)
+		operatorNamespace := os.Getenv(k8sutil.PodNamespaceEnvVar)
+		_, deviceCMController := cache.NewInformer(
+			cache.NewFilteredListWatchFromClient(c.context.Clientset.CoreV1().RESTClient(),
+				"configmaps", operatorNamespace, func(options *metav1.ListOptions) {
+					options.LabelSelector = fmt.Sprintf("%s=%s", k8sutil.AppAttr, discoverDaemon.AppName)
+				},
+			),
+			&v1.ConfigMap{},
+			0,
+			cache.ResourceEventHandlerFuncs{
+				AddFunc:    nil,
+				UpdateFunc: c.onDeviceCMUpdate,
+				DeleteFunc: nil,
 			},
-		),
-		&v1.ConfigMap{},
-		0,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc:    nil,
-			UpdateFunc: c.onDeviceCMUpdate,
-			DeleteFunc: nil,
-		},
-	)
+		)
 
-	go deviceCMController.Run(stopCh)
+		go deviceCMController.Run(stopCh)
+	} else {
+		logger.Infof("Disabling hotplug orchestration via %s", disableHotplugEnv)
+	}
 
 	// watch for events on all legacy types too
 	c.watchLegacyClusters(namespace, stopCh, resourceHandlerFuncs)
@@ -306,24 +311,28 @@ func (c *ClusterController) onAdd(obj interface{}) {
 	}
 
 	// Start pool CRD watcher
-	poolController := pool.NewPoolController(c.context)
-	poolController.StartWatch(cluster.Namespace, cluster.stopCh)
+	poolController := pool.NewPoolController(c.context, cluster.Namespace)
+	poolController.StartWatch(cluster.stopCh)
 
 	// Start object store CRD watcher
-	objectStoreController := object.NewObjectStoreController(cluster.Info, c.context, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef, cluster.Spec.DataDirHostPath)
-	objectStoreController.StartWatch(cluster.Namespace, cluster.stopCh)
+	objectStoreController := object.NewObjectStoreController(cluster.Info, c.context, cluster.Namespace, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef, cluster.Spec.DataDirHostPath)
+	objectStoreController.StartWatch(cluster.stopCh)
 
 	// Start object store user CRD watcher
-	objectStoreUserController := objectuser.NewObjectStoreUserController(c.context, cluster.ownerRef)
-	objectStoreUserController.StartWatch(cluster.Namespace, cluster.stopCh)
+	objectStoreUserController := objectuser.NewObjectStoreUserController(c.context, cluster.Namespace, cluster.ownerRef)
+	objectStoreUserController.StartWatch(cluster.stopCh)
 
 	// Start file system CRD watcher
-	fileController := file.NewFilesystemController(cluster.Info, c.context, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef, cluster.Spec.DataDirHostPath)
-	fileController.StartWatch(cluster.Namespace, cluster.stopCh)
+	fileController := file.NewFilesystemController(cluster.Info, c.context, cluster.Namespace, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef, cluster.Spec.DataDirHostPath)
+	fileController.StartWatch(cluster.stopCh)
 
 	// Start nfs ganesha CRD watcher
-	ganeshaController := nfs.NewCephNFSController(cluster.Info, c.context, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef)
-	ganeshaController.StartWatch(cluster.Namespace, cluster.stopCh)
+	ganeshaController := nfs.NewCephNFSController(cluster.Info, c.context, cluster.Namespace, c.rookImage, cluster.Spec.CephVersion, cluster.Spec.Network.HostNetwork, cluster.ownerRef)
+	ganeshaController.StartWatch(cluster.stopCh)
+
+	cluster.childControllers = []childController{
+		poolController, objectStoreController, objectStoreUserController, fileController, ganeshaController,
+	}
 
 	// Start mon health checker
 	healthChecker := mon.NewHealthChecker(cluster.mons)
@@ -367,8 +376,6 @@ func (c *ClusterController) onK8sNodeUpdate(oldObj, newObj interface{}) {
 	}
 
 	// set or unset noout depending on whether nodes are schedulable.
-	c.reconcileNodeMaintenance(newNode)
-
 	newNodeSchedulable := k8sutil.GetNodeSchedulable(*newNode)
 	oldNodeSchedulable := k8sutil.GetNodeSchedulable(*oldNode)
 
@@ -381,7 +388,6 @@ func (c *ClusterController) onK8sNodeUpdate(oldObj, newObj interface{}) {
 		logger.Debugf("Skipping cluster update. Updated node %s was and it is still schedulable", oldNode.Labels[v1.LabelHostname])
 		return
 	}
-	// Checking for nodes where NoSchedule-Taint got removed
 
 	for _, cluster := range c.clusterMap {
 		if cluster.Info == nil {
@@ -401,77 +407,6 @@ func (c *ClusterController) onK8sNodeUpdate(oldObj, newObj interface{}) {
 		}
 		logger.Infof("Added updated node %s to cluster %s", newNode.Labels[v1.LabelHostname], cluster.Namespace)
 	}
-}
-
-// set or unset noout depending on whether nodes are schedulable.
-func (c *ClusterController) reconcileNodeMaintenance(updatedNode *v1.Node) {
-	clusters := c.getTenantClusters(updatedNode)
-
-	for _, cluster := range clusters {
-		if cluster.Info.IsInitialized() {
-			nodes, err := osd.GetAllStorageNodes(cluster.context, cluster.Namespace)
-			if err != nil {
-				logger.Errorf("Error getting all storage nodes for cluster: %v", err)
-			}
-			allSchedulable := true
-			for _, node := range nodes {
-				if !k8sutil.GetNodeSchedulable(node) {
-					allSchedulable = false
-					break
-				}
-			}
-			osdDump, err := client.GetOSDDump(c.context, cluster.Info.Name)
-			if err != nil {
-				logger.Errorf("failed to get the noout value: %+v", err)
-			}
-			nooutFlagSet := osdDump.IsFlagSet("noout")
-			if allSchedulable {
-				if nooutFlagSet {
-					logger.Infof("Unsetting noout because no storage nodes are in maintenance")
-					client.UnsetNoOut(c.context, cluster.Info.Name)
-				} else {
-					logger.Debugf("No storage nodes are in maintenance. Noout already unset.")
-				}
-			} else {
-				if !nooutFlagSet {
-					logger.Infof("Setting noout because a storage node is in maintenance")
-					client.SetNoOut(c.context, cluster.Info.Name)
-				} else {
-					logger.Debugf("A storage node is in maintenance. Noout already set.")
-				}
-			}
-		} else {
-			logger.Errorf("The cluster's info is uninitialized")
-		}
-	}
-
-}
-
-// makes a list of all clusters that have osds on the node
-func (c *ClusterController) getTenantClusters(node *v1.Node) []*cluster {
-	var clusters []*cluster
-	// list osd deployments for all namespaces
-	for namespace, clusterObj := range c.clusterMap {
-		listOpts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", osd.AppName)}
-		osdDeployments, err := c.context.Clientset.AppsV1().Deployments(namespace).List(listOpts)
-		if err != nil {
-			logger.Errorf("Failed to get deployments, %v", err)
-		}
-		for _, osdDeployment := range osdDeployments.Items {
-			osdPodSpec := osdDeployment.Spec.Template.Spec
-			// get the node name from the node selector
-			nodeName, ok := osdPodSpec.NodeSelector[v1.LabelHostname]
-			if !ok || nodeName == "" {
-				logger.Errorf("osd deployment %s doesn't have a node name on its node selector: %+v", osdDeployment.Name, osdPodSpec.NodeSelector)
-			} else if nodeName == node.ObjectMeta.Name {
-				clusters = append(clusters, clusterObj)
-				break
-			}
-
-		}
-	}
-	return clusters
-
 }
 
 func (c *ClusterController) onUpdate(oldObj, newObj interface{}) {
@@ -594,19 +529,48 @@ func (c *ClusterController) handleUpdate(crdName string, cluster *cluster) (bool
 }
 
 func (c *ClusterController) onDeviceCMUpdate(oldObj, newObj interface{}) {
-	_, ok := oldObj.(*v1.ConfigMap)
+	oldCm, ok := oldObj.(*v1.ConfigMap)
 	if !ok {
 		logger.Warningf("Expected ConfigMap but handler received %#v", oldObj)
 		return
 	}
+	logger.Debugf("onDeviceCMUpdate old device cm: %+v", oldCm)
 
-	_, ok = newObj.(*v1.ConfigMap)
+	newCm, ok := newObj.(*v1.ConfigMap)
 	if !ok {
 		logger.Warningf("Expected ConfigMap but handler received %#v", newObj)
 		return
 	}
+	logger.Debugf("onDeviceCMUpdate new device cm: %+v", newCm)
+
+	oldDevStr, ok := oldCm.Data[discoverDaemon.LocalDiskCMData]
+	if !ok {
+		logger.Warningf("unexpected configmap data")
+		return
+	}
+
+	newDevStr, ok := newCm.Data[discoverDaemon.LocalDiskCMData]
+	if !ok {
+		logger.Warningf("unexpected configmap data")
+		return
+	}
+
+	devicesEqual, err := discoverDaemon.DeviceListsEqual(oldDevStr, newDevStr)
+	if err != nil {
+		logger.Warningf("failed to compare device lists: %v", err)
+		return
+	}
+
+	if devicesEqual {
+		logger.Infof("device lists are equal. skipping orchestration")
+		return
+	}
 
 	for _, cluster := range c.clusterMap {
+		if cluster.Info == nil {
+			logger.Info("Cluster %s is not ready. Skipping orchestration on device change", cluster.Namespace)
+			continue
+		}
 		logger.Infof("Running orchestration for namespace %s after device change", cluster.Namespace)
 		err := cluster.createInstance(c.rookImage, cluster.Info.CephVersion)
 		if err != nil {

@@ -167,7 +167,9 @@ func udevBlockMonitor(c chan string, period time.Duration) {
 	// return any add or remove events, but none that match device mapper
 	// events. string matching is case-insensitve
 	events := make(chan string)
-	go rawUdevBlockMonitor(events, []string{"(?i)add", "(?i)remove"}, []string{"(?i)dm-[0-9]+"})
+	go rawUdevBlockMonitor(events,
+		[]string{"(?i)add", "(?i)remove"},
+		[]string{"(?i)dm-[0-9]+", "(?i)rbd[0-9]+"})
 
 	for {
 		event, ok := <-events
@@ -191,7 +193,7 @@ func udevBlockMonitor(c chan string, period time.Duration) {
 	}
 }
 
-func deviceListsEqual(a, b string) (bool, error) {
+func DeviceListsEqual(a, b string) (bool, error) {
 	var d0 []sys.LocalDisk
 	var d1 []sys.LocalDisk
 
@@ -262,7 +264,7 @@ func updateDeviceCM(context *clusterd.Context) error {
 		}
 		lastDevice = deviceStr
 	}
-	devicesEqual, err := deviceListsEqual(deviceStr, lastDevice)
+	devicesEqual, err := DeviceListsEqual(deviceStr, lastDevice)
 	if err != nil {
 		return fmt.Errorf("failed to compare device lists: %v", err)
 	}
