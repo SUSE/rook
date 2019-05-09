@@ -86,7 +86,7 @@ roleRef:
   name: psp:rook
 subjects:
 - kind: ServiceAccount
-  name: rook-ceph:default
+  name: default
   namespace: rook-ceph
 
 ---
