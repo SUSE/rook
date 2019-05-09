@@ -146,6 +146,10 @@ func (c *Cluster) makeAuditdContainer(containerImage string) v1.Container {
 					},
 				},
 			},
+			{
+				Name:  "K8S_NAMESPACE",
+				Value: c.Namespace,
+			},
 		},
 		SecurityContext: securityContext,
 		VolumeMounts:    volumeMounts,
@@ -281,6 +285,10 @@ func (c *Cluster) makeDaemonContainer(containerImage string, dro edgefsv1beta1.D
 					},
 				},
 			},
+			{
+				Name:  "K8S_NAMESPACE",
+				Value: c.Namespace,
+			},
 		},
 		SecurityContext: securityContext,
 		Resources:       c.resources,
@@ -404,8 +412,16 @@ func (c *Cluster) createPodSpec(rookImage string, dro edgefsv1beta1.DevicesResur
 			if devConfig.IsGatewayNode {
 				continue
 			}
+
+			rtrdContainersCount := 0
 			if len(devConfig.RtrdSlaves) > 0 {
-				for i := range devConfig.RtrdSlaves {
+				rtrdContainersCount = len(devConfig.RtrdSlaves)
+			} else {
+				rtrdContainersCount = dro.SlaveContainers
+			}
+
+			if rtrdContainersCount > 0 {
+				for i := 0; i < rtrdContainersCount; i++ {
 					if dro.NeedToZap {
 						initContainers = append(initContainers, c.makeDaemonContainer(rookImage, dro, true, i+1))
 					}

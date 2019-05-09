@@ -44,7 +44,7 @@ const (
 	// test with the latest mimic build
 	mimicTestImage = "ceph/ceph:v13"
 	// test with the latest nautilus build
-	nautilusTestImage = "ceph/ceph:v14.2.0-20190319"
+	nautilusTestImage = "ceph/ceph:v14.2.1-20190430"
 	helmChartName     = "local/rook-ceph"
 	helmDeployName    = "rook-ceph"
 )
@@ -484,6 +484,9 @@ func (h *CephInstaller) cleanupDir(node, dir string) error {
 }
 
 func (h *CephInstaller) GatherAllRookLogs(namespace, systemNamespace string, testName string) {
+	if !h.T().Failed() && Env.Logs != "all" {
+		return
+	}
 	logger.Infof("Gathering all logs from Rook Cluster %s", namespace)
 	h.k8shelper.GetPreviousLogs("rook-ceph-operator", Env.HostType, systemNamespace, testName)
 	h.k8shelper.GetLogs("rook-ceph-operator", Env.HostType, systemNamespace, testName)

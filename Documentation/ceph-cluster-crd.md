@@ -23,7 +23,7 @@ metadata:
 spec:
   cephVersion:
     # see the "Cluster Settings" section below for more details on which image of ceph to run
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -32,8 +32,6 @@ spec:
     useAllNodes: true
     useAllDevices: true
 ```
-
-In addition to the CRD, you will also need to create a namespace, role, and role binding as seen in the [common cluster resources](#common-cluster-resources) below.
 
 ## Settings
 Settings can be specified at the global level to apply to the cluster as a whole, while other settings can be specified at more fine-grained levels.  If any setting is unspecified, a suitable default will be used automatically.
@@ -76,6 +74,7 @@ For more details on the mons and when to choose a number other than `3`, see the
   If individual nodes are specified under the `nodes` field below, then `useAllNodes` must be set to `false`.
   - `nodes`: Names of individual nodes in the cluster that should have their storage included in accordance with either the cluster level configuration specified above or any node specific overrides described in the next section below.
   `useAllNodes` must be set to `false` to use specific nodes and their config.
+  See [node settings](#node-settings) below.
   - `config`: Config settings applied to all OSDs on the node unless overridden by `devices` or `directories`. See the [config settings](#osd-configuration-settings) below.
   - [storage selection settings](#storage-selection-settings)
 
@@ -222,7 +221,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -254,7 +253,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -297,7 +296,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -334,7 +333,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -380,7 +379,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3
@@ -418,7 +417,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: ceph/ceph:v14.2.0-20190410
+    image: ceph/ceph:v14.2.1-20190430
   dataDirHostPath: /var/lib/rook
   mon:
     count: 3

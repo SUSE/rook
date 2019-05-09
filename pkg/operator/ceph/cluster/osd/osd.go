@@ -19,7 +19,6 @@ package osd
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -31,7 +30,6 @@ import (
 	cephconfig "github.com/rook/rook/pkg/daemon/ceph/config"
 	osdconfig "github.com/rook/rook/pkg/operator/ceph/cluster/osd/config"
 	opspec "github.com/rook/rook/pkg/operator/ceph/spec"
-	"github.com/rook/rook/pkg/operator/discover"
 	"github.com/rook/rook/pkg/operator/k8sutil"
 	"github.com/rook/rook/pkg/util/display"
 	apps "k8s.io/api/apps/v1"
@@ -143,26 +141,14 @@ func (c *Cluster) Start() error {
 	}
 
 	if c.DesiredStorage.UseAllNodes {
-		// resolve all storage nodes
-		c.DesiredStorage.Nodes = nil
-		rookSystemNS := os.Getenv(k8sutil.PodNamespaceEnvVar)
-		allNodeDevices, err := discover.ListDevices(c.context, rookSystemNS, "" /* all nodes */)
-		if err != nil {
-			logger.Warningf("failed to get storage nodes from namespace %s: %v", rookSystemNS, err)
-			return err
-		}
+		// Get the list of all nodes in the cluster. The placement settings will be applied below.
 		hostnameMap, err := k8sutil.GetNodeHostNames(c.context.Clientset)
 		if err != nil {
 			logger.Warningf("failed to get node hostnames: %v", err)
 			return err
 		}
-		for nodeName := range allNodeDevices {
-			hostname, ok := hostnameMap[nodeName]
-			if !ok || nodeName == "" {
-				// fall back to the node name if no hostname is set
-				logger.Warningf("failed to get hostname for node %s. %+v", nodeName, err)
-				hostname = nodeName
-			}
+		c.DesiredStorage.Nodes = nil
+		for _, hostname := range hostnameMap {
 			storageNode := rookalpha.Node{
 				Name: hostname,
 			}
@@ -256,7 +242,7 @@ func (c *Cluster) startProvisioning(config *provisionConfig) {
 }
 
 func (c *Cluster) runJob(job *batch.Job, nodeName string, config *provisionConfig, action string) bool {
-	if err := k8sutil.RunReplaceableJob(c.context.Clientset, job); err != nil {
+	if err := k8sutil.RunReplaceableJob(c.context.Clientset, job, false); err != nil {
 		if !errors.IsAlreadyExists(err) {
 			// we failed to create job, update the orchestration status for this node
 			message := fmt.Sprintf("failed to create %s job for node %s. %+v", action, nodeName, err)
