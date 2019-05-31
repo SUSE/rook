@@ -3,8 +3,13 @@
 ## Action Required
 
 ## Notable Features
+- Creation of storage pools through the custom resource definitions (CRDs) now allows users to optionally specify `deviceClass` property to enable
+distribution of the data only across the specified device class. See [Ceph Block Pool CRD](Documentation/ceph-pool-crd.md#ceph-block-pool-crd) for
+an example usage
 
-### <Storage Provider>
+### Ceph
+
+- Rook can now be configured to read "region" and "zone" labels on Kubernetes nodes and use that information as part of the CRUSH location for the OSDs.
 
 ## Breaking Changes
 
