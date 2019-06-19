@@ -27,7 +27,7 @@ kubectl delete storageclass rook-ceph-block
 kubectl delete -f kube-registry.yaml
 ```
 
-## Delete the CephCluster CRD
+## Delete the Cluster CRD
 After those block and file resources have been cleaned up, you can then delete your Rook cluster. This is important to delete **before removing the Rook operator and agent or else resources may not be cleaned up properly**.
 ```console
 kubectl -n rook-ceph delete cephcluster rook-ceph
@@ -38,12 +38,15 @@ Verify that the cluster CRD has been deleted before continuing to the next step.
 kubectl -n rook-ceph get cephcluster
 ```
 
-## Delete the Operator and related Resources
-This will begin the process of the Rook Ceph operator and all other resources being cleaned up.
-This includes related resources such as the agent and discover daemonsets with the following commands:
+## Delete the Operator
+This will begin the process of all cluster resources being cleaned up, after which you can delete the operator and related resources such as the agent and discover daemonsets with the following:
 ```console
 kubectl delete -f operator.yaml
-kubectl delete -f common.yaml
+```
+
+Optionally remove the rook-ceph namespace if it is not in use by any other resources.
+```
+kubectl delete namespace rook-ceph
 ```
 
 ## Delete the data on hosts

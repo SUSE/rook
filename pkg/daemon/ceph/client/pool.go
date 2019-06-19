@@ -42,7 +42,6 @@ type CephStoragePoolDetails struct {
 	ErasureCodeProfile string `json:"erasure_code_profile"`
 	FailureDomain      string `json:"failureDomain"`
 	CrushRoot          string `json:"crushRoot"`
-	DeviceClass        string `json:"deviceClass"`
 }
 
 type CephStoragePoolStats struct {
@@ -129,7 +128,7 @@ func CreatePoolWithProfile(context *clusterd.Context, clusterName string, newPoo
 	if newPoolReq.Type == model.ErasureCoded {
 		// create a new erasure code profile for the new pool
 		if err := CreateErasureCodeProfile(context, clusterName, newPoolReq.ErasureCodedConfig, newPool.ErasureCodeProfile,
-			newPoolReq.FailureDomain, newPoolReq.CrushRoot, newPoolReq.DeviceClass); err != nil {
+			newPoolReq.FailureDomain, newPoolReq.CrushRoot); err != nil {
 
 			return fmt.Errorf("failed to create erasure code profile for pool '%s': %+v", newPoolReq.Name, err)
 		}
@@ -254,14 +253,8 @@ func createReplicationCrushRule(context *clusterd.Context, clusterName string, n
 	} else {
 		crushRoot = "default"
 	}
-	args := []string{"osd", "crush", "rule", "create-replicated", ruleName, crushRoot, failureDomain}
 
-	var deviceClass string
-	if newPool.DeviceClass != "" {
-		deviceClass = newPool.DeviceClass
-		args = append(args, deviceClass)
-	}
-
+	args := []string{"osd", "crush", "rule", "create-simple", ruleName, crushRoot, failureDomain}
 	_, err := NewCephCommand(context, clusterName, args).Run()
 	if err != nil {
 		return fmt.Errorf("failed to create crush rule %s. %+v", ruleName, err)

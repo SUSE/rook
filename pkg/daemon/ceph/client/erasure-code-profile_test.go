@@ -27,18 +27,14 @@ import (
 )
 
 func TestCreateProfile(t *testing.T) {
-	testCreateProfile(t, "", "myroot", "")
+	testCreateProfile(t, "", "myroot")
 }
 
 func TestCreateProfileWithFailureDomain(t *testing.T) {
-	testCreateProfile(t, "osd", "", "")
+	testCreateProfile(t, "osd", "")
 }
 
-func TestCreateProfileWithDeviceClass(t *testing.T) {
-	testCreateProfile(t, "osd", "", "hdd")
-}
-
-func testCreateProfile(t *testing.T, failureDomain, crushRoot, deviceClass string) {
+func testCreateProfile(t *testing.T, failureDomain, crushRoot string) {
 	cfg := model.ErasureCodedPoolConfig{DataChunkCount: 2, CodingChunkCount: 3, Algorithm: "myalg"}
 
 	executor := &exectest.MockExecutor{}
@@ -65,16 +61,12 @@ func testCreateProfile(t *testing.T, failureDomain, crushRoot, deviceClass strin
 					assert.Equal(t, fmt.Sprintf("crush-root=%s", crushRoot), args[nextArg])
 					nextArg++
 				}
-				if deviceClass != "" {
-					assert.Equal(t, fmt.Sprintf("crush-device-class=%s", deviceClass), args[nextArg])
-					nextArg++
-				}
 				return "", nil
 			}
 		}
 		return "", fmt.Errorf("unexpected ceph command '%v'", args)
 	}
 
-	err := CreateErasureCodeProfile(context, "myns", cfg, "myapp", failureDomain, crushRoot, deviceClass)
+	err := CreateErasureCodeProfile(context, "myns", cfg, "myapp", failureDomain, crushRoot)
 	assert.Nil(t, err)
 }

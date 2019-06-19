@@ -159,9 +159,6 @@ distclean: go.distclean clean
 prune:
 	@$(MAKE) -C images prune
 
-csv-ceph:
-	@cluster/olm/ceph/generate-rook-csv.sh $(CSV_VERSION) $(CSV_PLATFORM) $(ROOK_OP_VERSION)
-
 .PHONY: all build.common cross.build.parallel
 .PHONY: build build.all install test check vet fmt codegen vendor clean distclean prune
 
@@ -179,7 +176,6 @@ Targets:
     check              Runs unit tests.
     clean              Remove all files that are created by building.
     codegen            Run code generators.
-    csv                Generate a CSV file for OLM.
     distclean          Remove all files that are created
                        by building or configuring.
     fmt                Check formatting of go sources.

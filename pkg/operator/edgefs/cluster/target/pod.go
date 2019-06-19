@@ -438,19 +438,21 @@ func (c *Cluster) createPodSpec(rookImage string, dro edgefsv1beta1.DevicesResur
 		ServiceAccountName: c.serviceAccount,
 		Affinity: &v1.Affinity{
 			PodAntiAffinity: &v1.PodAntiAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
 					{
-
-						LabelSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      k8sutil.AppAttr,
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   []string{appName},
+						Weight: int32(100),
+						PodAffinityTerm: v1.PodAffinityTerm{
+							LabelSelector: &metav1.LabelSelector{
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{
+										Key:      k8sutil.AppAttr,
+										Operator: metav1.LabelSelectorOpIn,
+										Values:   []string{appName},
+									},
 								},
 							},
+							TopologyKey: v1.LabelHostname,
 						},
-						TopologyKey: v1.LabelHostname,
 					},
 				},
 			},
