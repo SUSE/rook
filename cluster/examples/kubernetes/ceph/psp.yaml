@@ -74,6 +74,70 @@ subjects:
 
 ---
 
+# Allow the rook-csi-cephfs-plugin-sa serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rook-csi-cephfs-plugin-sa-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-csi-cephfs-plugin-sa
+  namespace: rook-ceph
+
+---
+
+# Allow the rook-csi-cephfs-provisioner-sa serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rook-csi-cephfs-provisioner-sa-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-csi-cephfs-provisioner-sa
+  namespace: rook-ceph
+
+---
+
+# Allow the rook-csi-rbd-plugin-sa serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rook-csi-rbd-plugin-sa-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-csi-rbd-plugin-sa
+  namespace: rook-ceph
+
+---
+
+# Allow the rook-csi-rbd-provisioner-sa serviceAccount to use the privileged PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rook-csi-rbd-provisioner-sa-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:rook
+subjects:
+- kind: ServiceAccount
+  name: rook-csi-rbd-provisioner-sa
+  namespace: rook-ceph
+
+---
+
 # Allow the default serviceAccount to use the privileged PSP
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

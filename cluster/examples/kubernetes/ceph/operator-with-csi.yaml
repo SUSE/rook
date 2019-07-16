@@ -52,6 +52,8 @@ spec:
           value: "quay.io/k8scsi/csi-snapshotter:v1.1.0"
         - name: ROOK_CSI_ATTACHER_IMAGE
           value: "quay.io/k8scsi/csi-attacher:v1.1.1"
+        - name: FLEXVOLUME_DIR_PATH
+          value: "/var/lib/kubelet/plugins/volume/exec"
         # The name of the node to pass with the downward API
         - name: NODE_NAME
           valueFrom:
