@@ -24,7 +24,7 @@ spec:
     - 'projected'
     - 'secret'
     - 'downwardAPI'
-    # - 'persistentVolumeClaim'
+    - 'persistentVolumeClaim'
     - 'hostPath'
     - 'flexVolume'
     # allowedHostPaths:
@@ -33,9 +33,12 @@ spec:
     #   - ???others???
   # allowedCapabilities:
   #   - '*'
+  allowPrivilegeEscalation: true
   hostPID: true
-  # hostIPC: true
+  hostIPC: true
   hostNetwork: true
+  allowedCapabilities:
+  - '*'
   hostPorts:
     - min: 1
       max: 65535
