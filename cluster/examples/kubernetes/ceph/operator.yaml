@@ -72,9 +72,11 @@ spec:
         # to the namespace in which the `mountSecret` Kubernetes secret namespace.
         # - name: AGENT_MOUNT_SECURITY_MODE
         #   value: "Any"
+
         # Set the path where the Rook agent can find the flex volumes
-        # - name: FLEXVOLUME_DIR_PATH
-        #   value: "<PathToFlexVolumes>"
+        - name: FLEXVOLUME_DIR_PATH
+          value: "/var/lib/kubelet/volumeplugins"
+
         # Set the path where kernel modules can be found
         # - name: LIB_MODULES_DIR_PATH
         #   value: "<PathToLibModules>"
