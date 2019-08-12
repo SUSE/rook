@@ -171,6 +171,16 @@ spec:
         #- name: ROOK_CSI_ATTACHER_IMAGE
         #  value: "quay.io/k8scsi/csi-attacher:v1.2.0"
 
+        # Path to the CSI templates
+        - name: ROOK_CSI_RBD_PLUGIN_TEMPLATE_PATH
+          value: /usr/share/k8s-yaml/rook/ceph/csi/template/rbd/csi-rbdplugin.yaml
+        - name: ROOK_CSI_RBD_PROVISIONER_TEMPLATE_PATH
+          value: /usr/share/k8s-yaml/rook/ceph/csi/template/rbd/csi-rbdplugin-provisioner.yaml
+        - name: ROOK_CSI_CEPHFS_PLUGIN_TEMPLATE_PATH
+          value: /usr/share/k8s-yaml/rook/ceph/csi/template/cephfs/csi-cephfsplugin.yaml
+        - name: ROOK_CSI_CEPHFS_PROVISIONER_TEMPLATE_PATH
+          value: /usr/share/k8s-yaml/rook/ceph/csi/template/cephfs/csi-cephfsplugin-provisioner.yaml
+
         # The name of the node to pass with the downward API
         - name: NODE_NAME
           valueFrom:
