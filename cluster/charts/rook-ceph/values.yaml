@@ -33,8 +33,9 @@ tolerations: []
 # Delay to use in node.kubernetes.io/unreachable toleration
 unreachableNodeTolerationSeconds: 5
 
-# Whether rook watches its current namespace for CRDs or the entire cluster, defaults to false
-currentNamespaceOnly: false
+# SUSE Enterprise Storage only supports "true": the operator should only watch for CephCluster CRDs
+# in its own namespace
+currentNamespaceOnly: true
 
 ## Annotations to be added to pod
 annotations: {}
