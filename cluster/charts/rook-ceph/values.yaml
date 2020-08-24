@@ -35,7 +35,7 @@ currentNamespaceOnly: true
 annotations: {}
 
 ## LogLevel can be set to: TRACE, DEBUG, INFO, NOTICE, WARNING, ERROR or CRITICAL
-logLevel: INFO
+logLevel: DEBUG
 
 ## If true, create & use RBAC resources
 ##
