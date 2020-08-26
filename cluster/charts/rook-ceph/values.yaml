@@ -16,10 +16,10 @@ resources:
     cpu: 100m
     memory: 256Mi
 
-nodeSelector: {}
-# Constraint rook-ceph-operator Deployment to nodes with label `disktype: ssd`.
+# Constrain rook-ceph-operator Deployment to nodes with a given label.
 # For more info, see https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
-#  disktype: ssd
+nodeSelector: {}
+  # node-role.rook-ceph/operator: true
 
 # Tolerations for the rook-ceph-operator to allow it to run on nodes with particular taints
 tolerations: []
@@ -223,6 +223,7 @@ csi:
   #      operator: Exists
   #      effect: NoSchedule
   # provisionerNodeAffinity: key1=value1,value2; key2=value3
+  provisionerNodeAffinity: node-role.rook-ceph/cluster=any,mon,mgr,mon-mgr,osd,mon-mgr-osd
   # Set pluginTolerations and pluginNodeAffinity for plugin daemonset pods.
   # The CSI plugins need to be started on all the nodes where the clients need to mount the storage.
   # pluginTolerations:
@@ -230,6 +231,7 @@ csi:
   #      operator: Exists
   #      effect: NoSchedule
   # pluginNodeAffinity: key1=value1,value2; key2=value3
+  # pluginNodeAffinity: node-role.rook-ceph/client=true
   #cephfsGrpcMetricsPort: 9091
   #cephfsLivenessMetricsPort: 9081
   #rbdGrpcMetricsPort: 9090
@@ -259,18 +261,15 @@ enableDiscoveryDaemon: true
 # useOperatorHostNetwork: true
 
 ## Rook Discover configuration
-## toleration: NoSchedule, PreferNoSchedule or NoExecute
-## tolerationKey: Set this to the specific key of the taint to tolerate
 ## tolerations: Array of tolerations in YAML format which will be added to discover deployment
 ## nodeAffinity: Set to labels of the node to match
-# discover:
-#   toleration: NoSchedule
-#   tolerationKey: key
+discover:
 #   tolerations:
 #   - key: key
 #     operator: Exists
 #     effect: NoSchedule
 #   nodeAffinity: key1=value1,value2; key2=value3
+  nodeAffinity: node-role.rook-ceph/cluster=any,mon,mgr,mon-mgr,osd,mon-mgr-osd
 
 # In some situations SELinux relabelling breaks (times out) on large filesystems, and doesn't work with cephfs ReadWriteMany volumes (last relabel wins).
 # Disable it here if you have similar issues.

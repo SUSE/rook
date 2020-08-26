@@ -58,10 +58,10 @@ spec:
     #    requiredDuringSchedulingIgnoredDuringExecution:
     #      nodeSelectorTerms:
     #      - matchExpressions:
-    #        - key: role
+    #        - key: node-role.rook-ceph/object-gateway
     #          operator: In
     #          values:
-    #          - rgw-node
+    #          - true
     #  tolerations:
     #  - key: rgw-node
     #    operator: Exists

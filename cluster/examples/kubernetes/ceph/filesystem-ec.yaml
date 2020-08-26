@@ -38,10 +38,10 @@ spec:
     #    requiredDuringSchedulingIgnoredDuringExecution:
     #      nodeSelectorTerms:
     #      - matchExpressions:
-    #        - key: role
+    #        - key: node-role.rook-ceph/fs-metadata-server
     #          operator: In
     #          values:
-    #          - mds-node
+    #          - true
     #  topologySpreadConstraints:
     #  tolerations:
     #  - key: mds-node
