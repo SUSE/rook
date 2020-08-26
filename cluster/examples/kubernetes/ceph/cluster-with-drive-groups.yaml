@@ -31,6 +31,138 @@ spec:
   labels:
   resources:
   removeOSDsIfOutAndSafeToRemove: false
+
+  placement:
+    all:
+      tolerations:
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: any
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr-osd
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.rook-ceph/cluster
+              operator: In
+              values:
+              - any
+              - mon-mgr-osd
+#      podAffinity:
+#      podAntiAffinity:
+#      topologySpreadConstraints:
+# The above placement information can also be specified for mon, osd, and mgr components.
+# Monitor deployments may contain an anti-affinity rule for avoiding monitor
+# collocation on the same node. This is a required rule when host network is used
+# or when AllowMultiplePerNode is false. Otherwise this anti-affinity rule is a
+# preferred rule with weight: 50.
+    mon:
+      tolerations:
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: any
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr-osd
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.rook-ceph/cluster
+              operator: In
+              values:
+              - any
+              - mon
+              - mon-mgr
+              - mon-mgr-osd
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 80
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: rook-ceph-mon
+            topologyKey: topology.rook.io/room
+        - weight: 90
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: rook-ceph-mon
+            topologyKey: topology.rook.io/rack
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: rook-ceph-mon
+            topologyKey: kubernetes.io/hostname
+    mgr:
+      tolerations:
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: any
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mgr
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr-osd
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.rook-ceph/cluster
+              operator: In
+              values:
+              - any
+              - mgr
+              - mon-mgr
+              - mon-mgr-osd
+    cleanup:
+      tolerations:
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: any
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mgr
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: osd
+      - key: node-role.rook-ceph/cluster
+        operator: Equal
+        value: mon-mgr-osd
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.rook-ceph/cluster
+              operator: In
+              values:
+              - any
+              - mon
+              - mgr
+              - mon-mgr
+              - osd
+              - mon-mgr-osd
+    # 'osd' placement is not used here when Drive Groups are used.
+
   # When managing a Rook/Ceph cluster's OSD layouts with Drive Groups, the `storage` config is
   # mostly ignored. `storageClassDeviceSets` can still be used to create OSDs on PVC, but Rook
   # will no longer use `storage` configs for creating OSDs on a node's devices. To avoid
@@ -54,7 +186,17 @@ spec:
         # host_pattern: # (deprecated in Ceph) is similarly ignored here in favor of Rook's placement
         # service_id: # is always set to the Drive Group name ("all_nodes" here)
       # omitting 'placement' or leaving it empty matches all untainted nodes
-      #placement: # omitting 'placement' or leaving it empty matches all untainted nodes
+      placement: # omitting 'placement' or leaving it empty matches all untainted nodes
+        tolerations:
+        - key: node-role.rook-ceph/cluster
+          operator: Equal
+          value: any
+        - key: node-role.rook-ceph/cluster
+          operator: Equal
+          value: osd
+        - key: node-role.rook-ceph/cluster
+          operator: Equal
+          value: mon-mgr-osd
 
     # # Further examples
     # - name: nodes_by_hostname
@@ -92,10 +234,12 @@ spec:
     #       requiredDuringSchedulingIgnoredDuringExecution:
     #         nodeSelectorTerms:
     #         - matchExpressions:
-    #           - key: role
+    #           - key: node-role.rook-ceph/cluster
     #             operator: In
     #             values:
-    #             - storage-node
+    #             - any
+    #             - osd
+    #             - mon-mgr-osd
     #     tolerations:
     #       - key: storage-node
     #         operator: Exists

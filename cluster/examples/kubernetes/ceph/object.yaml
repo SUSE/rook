@@ -60,14 +60,15 @@ spec:
     #    requiredDuringSchedulingIgnoredDuringExecution:
     #      nodeSelectorTerms:
     #      - matchExpressions:
-    #        - key: role
+    #        - key: node-role.rook-ceph/object-gateway
     #          operator: In
     #          values:
-    #          - rgw-node
+    #          - "true"
     #  topologySpreadConstraints:
-    #  tolerations:
-    #  - key: rgw-node
-    #    operator: Exists
+    tolerations:
+    - key: node-role.rook-ceph/object-gateway
+      operator: Equal
+      value: "true"
     #  podAffinity:
     #  podAntiAffinity:
     # A key/value list of annotations
